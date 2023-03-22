@@ -23,9 +23,21 @@ void blocking_buzzer(int duration);
 #define ECHO PD4
 #define BUZZ PA4
 
+#define TIMER_LENGTH 64000
+
 // Global variables
 uint16_t watchdog;
 uint16_t duration;
+
+// Interrupts
+
+ISR(TIMER1_OVF_vect)
+{
+	lcd_clear();
+	lcd_write_integer((int)duration);
+	TCNT1 = TIMER_LENGTH;
+}
+// Functions
 
 void wait(int ms)
 {
@@ -77,9 +89,23 @@ int main(void)
 	DDRD &= ~(1 << ECHO);
 	DDRA = 0xFF;
 	DDRB = 0x00;
+	DDRC = 0xFF;
+
+	init_4bits_mode();
+	lcd_clear();
+	lcd_write_integer((int)duration);
+	TCNT1 = TIMER_LENGTH;
+
+	TCCR1A = 0x00;
+	TCCR1B = (1 << CS10) | (1 << CS12);
+	// Timer mode with 1024 prescler
+	TIMSK = (1 << TOIE1); // Enable timer1 overflow interrupt(TOIE1)
+	sei();
+	// Enable global interrupts by setting global interrupt enable bit in SREG
 
 	while (1)
 	{
+
 		PORTD |= (1 << TRIG); // set PORTD.5 to output high
 		_delay_us(40);
 		PORTD &= ~(1 << TRIG);
