@@ -11,35 +11,52 @@ it will then calculate the distance and change the pitch of the buzzer according
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-// Define pins
+void wait(int ms);
+void wait_us(int us);
+void buzzer_init(void);
+void buzzer_on(void);
+void buzzer_off(void);
+void blocking_buzzer(int duration);
+
 #define TRIG PD5
 #define ECHO PD4
 #define BUZZ PA4
 
-<<<<<<< Updated upstream
-// Define variables
-volatile int distance = 0;
-volatile int distanceHigh = 0;
-=======
-int busy = 0;
+// Global variables
+uint16_t busy;
+uint16_t watchdog;
+uint16_t duration;
 
-void init_timer1(void)
+void wait(int ms)
 {
-	TCCR1A = 0x00;
-	TCCR1B = 0x0B;
-	TCNT1 = 0x0000;
+	for (int i = 0; i < ms; i++)
+	{
+		_delay_ms(1);
+	}
 }
->>>>>>> Stashed changes
 
-int lengthOfScale = 0;
+void wait_us(int us)
+{
+	for (int i = 0; i < us; i++)
+	{
+		_delay_us(1);
+	}
+}
 
-int note = 0;
+void buzzer_init(void)
+{
+	DDRA |= (1 << BUZZ);
+}
 
-// A Minor pentatonic scale
-int scale[] = {
-	147, 165, 196, 220, 262, 294, 330, 392, 440,
-	523, 587, 659, 784, 880, 1047, 1175, 1319, 1568,
-	1760, 2093, 2349};
+void buzzer_on(void)
+{
+	PORTA |= (1 << BUZZ);
+}
+
+void buzzer_off(void)
+{
+	PORTA &= ~(1 << BUZZ);
+}
 
 void blocking_buzzer(int duration)
 {
@@ -50,29 +67,22 @@ void blocking_buzzer(int duration)
 	wait(duration / 2);
 	busy = 0;
 }
+
 // Main function
 int main(void)
 {
-	DDRD |= (1 << TRIG);  // Set TRIG as output
-	DDRD &= ~(1 << ECHO); // Set ECHO as input
-	DDRA |= (1 << BUZZ);  // Set BUZZ as output
+	// init global variables
+	busy = 0;
+	watchdog = 0;
+	duration = 0;
+
+	DDRD |= (1 << TRIG);
+	DDRD &= ~(1 << ECHO);
+	DDRA = 0xFF;
+	DDRB = 0x00;
 
 	while (1)
 	{
-<<<<<<< Updated upstream
-
-		// Turn the buzzer on
-		PORTA |= (1 << BUZZ);
-
-		// wait for 15ms
-		_delay_ms(15);
-
-		// Turn the buzzer off
-		PORTA &= ~(1 << BUZZ);
-
-		// wait for 15ms
-		_delay_ms(15);
-=======
 		if (busy)
 		{
 			continue;
@@ -101,6 +111,5 @@ int main(void)
 		}
 		duration = 0;
 		//_delay_us(30000); // wait until echo times out
->>>>>>> Stashed changes
 	}
 }
