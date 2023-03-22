@@ -2,6 +2,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <stdio.h>
 #include "lcdDisplay.h"
 
 #define BIT(x)			(1 << (x))
@@ -25,41 +26,50 @@ void timer1Init( void ) {
 	TCCR1B = 0b00011010;			// fast PWM, TOP = ICR1, prescaler=8 (1MHz), RUN
 }
 
+void toggle_buzz( ) {
+	PORTA ^= BIT(0);
+}
 
-// Main program: Counting on T1
-int main( void ) {
-	DDRB = 0xFF;					// set PORTB for compare output
-	DDRC = 0xFF;					// set PORTA for output in main program
-	timer1Init();					// it is running now!!
+#define TRIG PC5
+#define ECHO PC4
+
+int main(void)
+{
+	uint16_t duration;
+	DDRC |= (1 << TRIG);
+	DDRC &= ~(1 << ECHO);
+	DDRA = 0xFF;
+	
+/*	
 	init_4bits_mode();
-	
-	DDRA = 0x00;
-	
-	
 	lcd_clear();
-	lcd_write_string("Button 2");
-	
-	while (1) {
+	lcd_write_string("hi");
+*/
 
-		
-		DDRC = 0xFF; // set all Port A pins as an output
-		
-		PORTC = 0b00100000; // write 1 (high) to PORTA.5 (trigger pin )
-		wait(10); // keep high signal output for 10µs
-		PORTC = 0x00; // write 0 (low) to PORTA.5
-		
-		DDRC = 0x00;  // Configure all Port A pins as an input
-		while (PINC & 0x00){
-			
-		}
-		int waitTime = PINC;  // Wait until PINC.4 (echo pin) has 1 (high) value
-		if(PINC & BIT (4))   // Once PINC.4 is high, while loop will break and this line will be execute
-		{
-									// every 100 ms (busy waiting)
-				lcd_clear();					
-				lcd_write_integer(PINC);
-				wait(100);
-		}
+	while(1)
+	{
+		PORTC |= (1 << TRIG); // set PORTC.5 to output high
+		_delay_us(40);  
+		PORTC &= ~(1 << TRIG);
+		_delay_us(25000);
+/*		while(!(PINC & (1 << ECHO)));
+		TCNT1 = 0;
+		TCCR1C |= (1 << CS10);
 
+		while(PINC & (1 << ECHO));
+		TCCR1C = 0;
+
+
+		duration = TCNT1 / 58;
+
+		toggle_buzz();
+		wait(duration);
+		toggle_buzz();
+		wait(duration);
+		
+		wait(500);
+		
+		printf((char *) duration);
+		*/
 	}
 }
