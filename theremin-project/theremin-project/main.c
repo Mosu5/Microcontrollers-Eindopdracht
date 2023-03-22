@@ -11,98 +11,45 @@ it will then calculate the distance and change the pitch of the buzzer according
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-void wait(int ms);
-void wait_us(int us);
-void buzzer_init(void);
-void buzzer_on(void);
-void buzzer_off(void);
-void init_timer0(void);
-void set_buzzer_pitch(int pitch);
-
+// Define pins
 #define TRIG PD5
 #define ECHO PD4
 #define BUZZ PA4
 
-void init_timer1(void)
-{
-	TCCR1A = 0x00;
-	TCCR1B = 0x0B;
-	TCNT1 = 0x0000;
-}
+// Define variables
+volatile int distance = 0;
+volatile int distanceHigh = 0;
 
-void wait(int ms)
-{
-	for (int i = 0; i < ms; i++)
-	{
-		_delay_ms(1);
-	}
-}
+int lengthOfScale = 0;
 
-void wait_us(int us)
-{
-	for (int i = 0; i < us; i++)
-	{
-		_delay_us(1);
-	}
-}
+int note = 0;
 
-void buzzer_init(void)
-{
-	DDRA |= (1 << BUZZ);
-}
-
-void buzzer_on(void)
-{
-	PORTA |= (1 << BUZZ);
-}
-
-void buzzer_off(void)
-{
-	PORTA &= ~(1 << BUZZ);
-}
-
-void init_timer0(void)
-{
-	TCCR1A = 0x02;
-	TCCR1B = 0x05;
-	TCNT0 = 0x00;
-}
-
-void set_buzzer_pitch(int pitch)
-{
-	OCR1A = pitch;
-}
+// A Minor pentatonic scale
+int scale[] = {
+	147, 165, 196, 220, 262, 294, 330, 392, 440,
+	523, 587, 659, 784, 880, 1047, 1175, 1319, 1568,
+	1760, 2093, 2349};
 
 // Main function
 int main(void)
 {
-	uint16_t distance = 0;
-	uint16_t pitch = 0;
-	uint16_t watchdog = 0;
-	uint16_t duration = 0;
-	
-	int count = 0;
+	DDRD |= (1 << TRIG);  // Set TRIG as output
+	DDRD &= ~(1 << ECHO); // Set ECHO as input
+	DDRA |= (1 << BUZZ);  // Set BUZZ as output
 
 	while (1)
 	{
-		DDRD |= (1 << TRIG);
-		DDRD &= ~(1 << ECHO);
-		DDRA = 0xFF;
-		DDRB = 0x00;
-		
 
-		PORTD |= (1 << TRIG); // set PORTD.5 to output high
-		_delay_us(40);
-		PORTD &= ~(1 << TRIG);
-		_delay_us(40);
-		buzzer_off();
+		// Turn the buzzer on
+		PORTA |= (1 << BUZZ);
 
-		// while echo is high, count
+		// wait for 15ms
+		_delay_ms(15);
 
-		while (PIND & (1 << ECHO))
-		{
-		}
-		buzzer_on();
-		_delay_us(120000); // wait until echo times out
+		// Turn the buzzer off
+		PORTA &= ~(1 << BUZZ);
+
+		// wait for 15ms
+		_delay_ms(15);
 	}
 }
