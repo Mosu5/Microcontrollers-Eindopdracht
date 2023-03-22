@@ -80,41 +80,29 @@ int main(void)
 	uint16_t pitch = 0;
 	uint16_t watchdog = 0;
 	uint16_t duration = 0;
-
-	DDRD |= (1 << TRIG);
-	DDRD &= ~(1 << ECHO);
-	DDRA = 0xFF;
-	DDRB = 0x00;
+	
+	int count = 0;
 
 	while (1)
 	{
+		DDRD |= (1 << TRIG);
+		DDRD &= ~(1 << ECHO);
+		DDRA = 0xFF;
+		DDRB = 0x00;
+		
 
 		PORTD |= (1 << TRIG); // set PORTD.5 to output high
 		_delay_us(40);
 		PORTD &= ~(1 << TRIG);
 		_delay_us(40);
+		buzzer_off();
 
 		// while echo is high, count
-		buzzer_on();
+
 		while (PIND & (1 << ECHO))
 		{
-			buzzer_on();
-
-			watchdog++;
-			if (watchdog > 20000)
-			{
-				break;
-			}
-			duration++;
-			_delay_us(100);
 		}
-
-		// when the echo is low, stop counting, set the buzzer frequency and reset the duration
-		if (watchdog < 20000)
-		{
-			buzzer_off();
-		}
-		duration = 0;
-		_delay_us(30000); // wait until echo times out
+		buzzer_on();
+		_delay_us(120000); // wait until echo times out
 	}
 }
