@@ -1,79 +1,40 @@
-#define F_CPU 8e6
+/*
+This code is for the main function of the program.
+It will keep the buzzer going until the user presses the button. (on/off switch)
+Also, it will sent out a pulse to the sensor and then wait for the echo to come back.
+it will then calculate the distance and change the pitch of the buzzer accordingly.
+*/
+
+#define F_CPU 8000000UL // 8 MHz clock speed
+
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
-#include <stdio.h>
-#include "lcdDisplay.h"
-
-#define BIT(x) (1 << (x))
-#define INTERVAL 2273
 
 void wait(int ms);
 void wait_us(int us);
-void buzzerOn(uint16_t duration);
-void set_buzzer_pitch(uint16_t pitch);
-void turn_off_buzzer();
-unsigned int sCount = 0, minutes = 0, hours = 0;
+void buzzer_init(void);
+void buzzer_on(void);
+void buzzer_off(void);
+void init_timer0(void);
+void set_buzzer_pitch(int pitch);
 
 #define TRIG PD5
 #define ECHO PD4
+#define BUZZ PA4
 
-#define BUZZ PA0
-
-int main(void)
+void init_timer1(void)
 {
-	uint16_t duration;
-	DDRD |= (1 << TRIG);
-	DDRD &= ~(1 << ECHO);
-	DDRA = 0xFF;
-	DDRB = 0x00;
-
-	// initialize lcd
-	init_4bits_mode();
-	lcd_clear();
-	lcd_write_string("Hello World!");
-
-	int watchdog = 0;
-	duration = 0;
-	
-	set_buzzer_pitch(440);
-
-	while (1)
-	{
-		PORTD |= (1 << TRIG); // set PORTD.5 to output high
-		_delay_us(40);
-		PORTD &= ~(1 << TRIG);
-		_delay_us(40);
-
-		// while echo is high, count
-		while (PIND & (1 << ECHO))
-		{
-			watchdog++;
-			if (watchdog > 20000)
-			{
-				break;
-			}
-			duration++;
-			_delay_us(1);
-		}
-
-		// when the echo is low, stop counting, set the buzzer frequency and reset the duration
-		if (watchdog < 20000)
-		{
-			buzzerOn(duration);
-		}
-		duration = 0;
-		_delay_us(30000); // wait until echo times out
-	}
+	TCCR1A = 0x00;
+	TCCR1B = 0x0B;
+	TCNT1 = 0x0000;
 }
 
-// wait(): busy waiting for 'ms' millisecond
-// Used library: util/delay.h
 void wait(int ms)
 {
 	for (int i = 0; i < ms; i++)
 	{
-		wait(1); // library function (max 30 ms at 8MHz)
+		_delay_ms(1);
 	}
 }
 
@@ -81,49 +42,79 @@ void wait_us(int us)
 {
 	for (int i = 0; i < us; i++)
 	{
-		_delay_us(1); // library function (max 30 ms at 8MHz)
+		_delay_us(1);
 	}
 }
 
-// buzzerOn(): turns the buzzer on for a certain duration
-void buzzerOn(uint16_t duration)
+void buzzer_init(void)
 {
-	// set the buzzer frequency
-	set_buzzer_pitch(duration);
-
-	// turn the buzzer on
-	PORTA |= (1 << BUZZ);
-
-	// wait for the duration
-	wait_us((int)duration);
-
-	// turn the buzzer off
-	PORTA &= ~(1 << BUZZ);
+	DDRA |= (1 << BUZZ);
 }
 
-// // set_buzzer_pitch(): sets the buzzer frequency in Hz (pitch)
-// void set_buzzer_pitch(uint16_t pitch)
-// {
-// 	// set the buzzer frequency
-// 	OCR1A = INTERVAL / pitch;
-// }
-
-void set_buzzer_pitch(uint16_t pitch)
+void buzzer_on(void)
 {
-	// Set up Timer/Counter0 for PWM output on OC0A (PD6)
-	DDRD |= (1 << PD6);
-	TCCR1A = (1 << COM1A0) | (2 << WGM00);
-	TCCR1B = (3 << CS00);
-
-	// Set the frequency
-	OCR1A = F_CPU / (2 * pitch) - 1;
-
-	// turn the buzzer on
 	PORTA |= (1 << BUZZ);
 }
 
-void turn_off_buzzer()
+void buzzer_off(void)
 {
-	// turn the buzzer off
 	PORTA &= ~(1 << BUZZ);
+}
+
+void init_timer0(void)
+{
+	TCCR1A = 0x02;
+	TCCR1B = 0x05;
+	TCNT0 = 0x00;
+}
+
+void set_buzzer_pitch(int pitch)
+{
+	OCR1A = pitch;
+}
+
+// Main function
+int main(void)
+{
+	uint16_t distance = 0;
+	uint16_t pitch = 0;
+	uint16_t watchdog = 0;
+	uint16_t duration = 0;
+
+	DDRD |= (1 << TRIG);
+	DDRD &= ~(1 << ECHO);
+	DDRA = 0xFF;
+	DDRB = 0x00;
+
+	while (1)
+	{
+
+		PORTD |= (1 << TRIG); // set PORTD.5 to output high
+		_delay_us(40);
+		PORTD &= ~(1 << TRIG);
+		_delay_us(40);
+
+		// while echo is high, count
+		buzzer_on();
+		while (PIND & (1 << ECHO))
+		{
+			buzzer_on();
+
+			watchdog++;
+			if (watchdog > 20000)
+			{
+				break;
+			}
+			duration++;
+			_delay_us(100);
+		}
+
+		// when the echo is low, stop counting, set the buzzer frequency and reset the duration
+		if (watchdog < 20000)
+		{
+			buzzer_off();
+		}
+		duration = 0;
+		_delay_us(30000); // wait until echo times out
+	}
 }
