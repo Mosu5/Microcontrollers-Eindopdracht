@@ -1,66 +1,40 @@
-/*
- * theremin-project.c
- *
- * Created: 22-3-2023 08:45:33
- * Author : moust
- */ 
-
 #define F_CPU 8e6
-
 #include <avr/io.h>
-#include <stdio.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
-#define BIT(x) (1 << (x))
+#define BIT(x)			(1 << (x))
+#define INTERVAL  		2273
 
 unsigned int sCount=0, minutes=0, hours=0;
 
-
+// wait(): busy waiting for 'ms' millisecond
+// Used library: util/delay.h
 void wait( int ms ) {
-	for (int tms=0; tms<ms; tms++) {
-		_delay_ms(1);
+	for (int i=0; i<ms; i++) {
+		_delay_ms( 1 );				// library function (max 30 ms at 8MHz)
 	}
 }
 
 // Initialize timer 1: fast PWM at pin PORTB.6 (hundredth ms)
 void timer1Init( void ) {
-	OCR1A = 0;					// RED, default, off
-	OCR1B = 0;					// GREEN, default, off
-	OCR1C = 0;					// BLUE, default, off
-	TCCR1A = 0b10101001;		// compare output OC1A,OC1B,OC1C
-	TCCR1B = 0b00001011;		// fast PWM 8 bit, prescaler=64, RUN
-}
-
-void setPWM( unsigned char pulse ) {
-	OCR1A = pulse;
+	ICR1 = INTERVAL;				// TOP value for counting = INTERVAL*us
+	OCR1A = INTERVAL/2;				// compare value in between
+	TCCR1A = 0b10000010;			// timer, compare output at OC1A=PB5
+	TCCR1B = 0b00011010;			// fast PWM, TOP = ICR1, prescaler=8 (1MHz), RUN
 }
 
 
-int main()
-{
-	DDRC = 0xFF;					// set PORTB for compare output
-	timer1Init();
-	wait(100);
+// Main program: Counting on T1
+int main( void ) {
+	DDRB = 0xFF;					// set PORTB for compare output
+	DDRC = 0xFF;					// set PORTA for output in main program
+	timer1Init();					// it is running now!!
+
 
 	while (1) {
-		int delta = 1;
-		setPWM (0);
-
-		for (int red = 0; red<=440; red+=delta) {
-			setPWM( red );				// 8-bits PWM on pin OCR1a
-			delta += 2;					// progressive steps up
-			wait(100);					// delay of 100 ms (busy waiting)
-		}
-		for (int red = 255; red>=0; red-=delta) {
-			setPWM( red );				// 8-bits PWM on pin OCR1a
-			delta -= 2;					// progressive steps down
-			wait(100);					// delay of 100 ms (busy waiting)
-		}
-		setPWM( 0 );
-		delta = 1;
-		wait(100);
-
-		
+		// do something else
+		wait(100);					// every 100 ms (busy waiting)
+		PORTC ^= BIT(0);			// toggle bit 7 PORTA
 	}
-	return 0;
 }
