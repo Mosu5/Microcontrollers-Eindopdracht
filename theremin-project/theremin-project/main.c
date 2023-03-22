@@ -10,6 +10,7 @@ it will then calculate the distance and change the pitch of the buzzer according
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include "lcdDisplay.h"
 
 void wait(int ms);
 void wait_us(int us);
@@ -23,7 +24,6 @@ void blocking_buzzer(int duration);
 #define BUZZ PA4
 
 // Global variables
-uint16_t busy;
 uint16_t watchdog;
 uint16_t duration;
 
@@ -58,21 +58,18 @@ void buzzer_off(void)
 	PORTA &= ~(1 << BUZZ);
 }
 
-void blocking_buzzer(int duration)
+void buzz_ms(int duration)
 {
-	busy = 1;
 	buzzer_on();
 	wait(duration / 2);
 	buzzer_off();
 	wait(duration / 2);
-	busy = 0;
 }
 
 // Main function
 int main(void)
 {
 	// init global variables
-	busy = 0;
 	watchdog = 0;
 	duration = 0;
 
@@ -83,10 +80,6 @@ int main(void)
 
 	while (1)
 	{
-		if (busy)
-		{
-			continue;
-		}
 		PORTD |= (1 << TRIG); // set PORTD.5 to output high
 		_delay_us(40);
 		PORTD &= ~(1 << TRIG);
@@ -107,7 +100,8 @@ int main(void)
 		// when the echo is low, stop counting, set the buzzer frequency and reset the duration
 		if (watchdog < 20000)
 		{
-			blocking_buzzer(duration * 10);
+
+			buzz_ms(duration * 10);
 		}
 		duration = 0;
 		//_delay_us(30000); // wait until echo times out
