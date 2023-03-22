@@ -118,3 +118,5 @@ ClientBin
 stylecop.*
 ~$*
 *.dbmdl
+*.xml
+*.cproj
