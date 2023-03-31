@@ -1,2 +1,2 @@
-# esp32-theremin
-A theremin synthesizer using an ultrasonic sensor, esp32 and speaker (buzzer).
+# Motion-Alarm
+A recreation of a motion alarm used in cars for example.
